@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+
+package de.floeschel.sign;
+
+message SignRequest {
+    string certificate = 1;
+    string pin = 2;
+    Type type = 3;
+    bytes signature = 4;    //optional
+    bytes graphic = 5;	//optional
+    map<string, string> settings = 6;	//optional
+	
+    enum Type {
+        CADES = 00;
+        PADES = 10;
+        XADES = 20;
+    }    
+    enum Setting {
+        PDF_PAGE = 0;
+    }
+}
+
+message SignResponse {
+	int32 result = 1;
+	string msg = 2;
+}
