@@ -1,33 +1,12 @@
 package de.floeschel.jetty.server.servlet;
 
-import com.itextpdf.io.source.RandomAccessSourceFactory;
-import com.itextpdf.kernel.pdf.PdfReader;
-import com.itextpdf.signatures.BouncyCastleDigest;
-import com.itextpdf.signatures.CrlClientOnline;
-import com.itextpdf.signatures.DigestAlgorithms;
-import com.itextpdf.signatures.ICrlClient;
-import com.itextpdf.signatures.IExternalDigest;
-import com.itextpdf.signatures.IExternalSignature;
-import com.itextpdf.signatures.IOcspClient;
-import com.itextpdf.signatures.ITSAClient;
-import com.itextpdf.signatures.OCSPVerifier;
-import com.itextpdf.signatures.OcspClientBouncyCastle;
-import com.itextpdf.signatures.PdfSigner;
-import com.itextpdf.signatures.PrivateKeySignature;
-import com.itextpdf.signatures.TSAClientBouncyCastle;
-import de.floeschel.sign.SignRequest;
+import com.google.protobuf.GeneratedMessageV3;
+import de.floeschel.sign.StreamUtil;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.security.GeneralSecurityException;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.cert.Certificate;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.UUID;
 import javax.servlet.AsyncContext;
 import javax.servlet.ReadListener;
@@ -35,31 +14,34 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StreamReadListener implements ReadListener {
+public class StreamReadListener<T extends GeneratedMessageV3> implements ReadListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(StreamReadListener.class);
 
     private final AsyncContext async;
     private final ServletRequest request;
     private final ServletResponse response;
+    private final Class<T> type;
 
     private final ServletInputStream in;
     private final File tmpFile;
     private final OutputStream tmpOs;
     private final byte[] buffer = new byte[64 * 1024];
+    private ProcessResult result;
 
-    StreamReadListener(AsyncContext async, ServletRequest request, ServletResponse response) throws IOException {
+    StreamReadListener(AsyncContext async, ServletRequest request, ServletResponse response, Class<T> type) throws IOException {
         this.async = async;
         this.request = request;
         this.response = response;
+        this.type = type;
 
         in = request.getInputStream();
         tmpFile = File.createTempFile(UUID.randomUUID().toString(), null);
         tmpOs = new FileOutputStream(tmpFile);
+        LOG.debug("tmpFile: " + tmpFile);
     }
 
     @Override
@@ -84,55 +66,21 @@ public class StreamReadListener implements ReadListener {
     public void onAllDataRead() throws IOException {
         tmpOs.close();
 
-        //TODO
         //process the data and generate output
         RandomAccessFile raf = new RandomAccessFile(tmpFile, "r");
 
-        int protoMessageLength = raf.readInt();
-        byte[] protoData = new byte[protoMessageLength];
-        raf.read(protoData);
-        SignRequest signRequest = SignRequest.parseFrom(protoData);
+        T req = StreamUtil.parseStream(raf, type);
 
-        File sigFile = File.createTempFile(UUID.randomUUID().toString(), null);
-        FileOutputStream sigOut = new FileOutputStream(sigFile);
+        Processor processor = ProcessorFactory.getProcessor(req);
+        result = processor.process(req, raf);
 
-        PdfReader pdfReader = new PdfReader(new RandomAccessSourceFactory().createSource(raf), null);
-        PdfSigner pdfSigner = new PdfSigner(pdfReader, sigOut, UUID.randomUUID().toString(), false);
+        tmpFile.delete();
+        GeneratedMessageV3 protoMsg = result.getProtoMsg();
 
-//        pdfSigner.getSignatureAppearance()
-//                .setReason("Reason")
-//                .setLocation("Location");
-//        pdfSigner.setCertificationLevel(PdfSigner.CERTIFIED_NO_CHANGES_ALLOWED);
-        try {
-            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            ks.load(new FileInputStream("../PF_123456.p12"), signRequest.getPin().toCharArray());
-            String alias = ks.aliases().nextElement();
-            PrivateKey privateKey = (PrivateKey) ks.getKey(alias, signRequest.getPin().toCharArray());
-            Certificate[] chain = ks.getCertificateChain(alias);
+        //generate response
+        ServletOutputStream out = response.getOutputStream();
+        out.setWriteListener(new StreamWriteListener(async, request, response, protoMsg, result.getFile()));
 
-            IExternalSignature pks = new PrivateKeySignature(privateKey, DigestAlgorithms.SHA256, BouncyCastleProvider.PROVIDER_NAME);
-            IExternalDigest digest = new BouncyCastleDigest();
-
-            ICrlClient crlClientOnline = new CrlClientOnline(chain);
-            Collection<ICrlClient> crlClients = new HashSet<>();
-            crlClients.add(crlClientOnline);
-
-            IOcspClient ocspClient = new OcspClientBouncyCastle(new OCSPVerifier(null, null));
-            ITSAClient tsaClient = new TSAClientBouncyCastle("https://freetsa.org/tsr");
-
-            pdfSigner.signDetached(digest, pks, chain, crlClients, ocspClient, tsaClient, 0, PdfSigner.CryptoStandard.CADES);
-
-            //generate response 
-            ServletOutputStream out = response.getOutputStream();
-            out.setWriteListener(new StreamWriteListener(async, request, response, sigFile));
-        } catch (IOException | GeneralSecurityException ex) {
-            LOG.error(ex.getLocalizedMessage(), ex);
-        } finally {
-            raf.close();
-            sigOut.close();
-            tmpFile.delete();
-            sigFile.deleteOnExit();
-        }
     }
 
     @Override
@@ -142,11 +90,13 @@ public class StreamReadListener implements ReadListener {
             if (!tmpFile.delete()) {
                 tmpFile.deleteOnExit();
             }
-//            response.getWriter().write(t.getLocalizedMessage());
-            async.complete();
-            LOG.error(t.getLocalizedMessage(), t);
+
+            GeneratedMessageV3 protoMsg = result.getProtoMsg();
+            ServletOutputStream out = response.getOutputStream();
+            out.setWriteListener(new StreamWriteListener(async, request, response, protoMsg, null));
+            LOG.warn(t.getLocalizedMessage(), t);
         } catch (IOException ex) {
-            LOG.error(ex.getLocalizedMessage(), ex);
+            LOG.warn(ex.getLocalizedMessage(), ex);
         }
     }
 

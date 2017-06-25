@@ -13,9 +13,16 @@ message SignRequest {
     map<string, string> settings = 6;	//optional
 	
     enum Type {
-        CADES = 00;
-        PADES = 10;
-        XADES = 20;
+        option allow_alias = true;
+        CAdES = 00;
+        
+        PAdES = 10;
+        PAdES_B =10;
+        PAdES_B_T=11;
+        PAdES_B_LT=12;
+        PAdES_B_LTA=13;
+        
+        XAdES = 20;
     }    
     enum Setting {
         PDF_PAGE = 0;

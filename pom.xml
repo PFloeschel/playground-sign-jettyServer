@@ -55,6 +55,11 @@
             <version>9.4.6.v20170531</version>
         </dependency>
         <dependency>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-server</artifactId>
+            <version>9.4.6.v20170531</version>
+        </dependency>
+        <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
@@ -83,6 +88,11 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-client</artifactId>
+            <version>9.4.6.v20170531</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-client</artifactId>
             <version>9.4.6.v20170531</version>
         </dependency>
         <dependency>
@@ -140,7 +150,12 @@
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>sign</artifactId>
-            <version>7.0.4-SNAPSHOT</version>
+            <version>7.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>pdfa</artifactId>
+            <version>7.0.3</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>

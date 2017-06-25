@@ -55,9 +55,8 @@ public class Server {
 
     private static ServletContextHandler createServletHandlerWithServlet() {
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
-        context.addServlet(SignServlet.class, "/Sign");
         context.setContextPath("/");
-
+        context.addServlet(SignServlet.class, "/Sign");
         return context;
     }
 
