@@ -20,8 +20,8 @@ import com.itextpdf.signatures.OcspClientBouncyCastle;
 import com.itextpdf.signatures.PdfSigner;
 import com.itextpdf.signatures.PrivateKeySignature;
 import com.itextpdf.signatures.TSAClientBouncyCastle;
+import de.floeschel.sign.Response;
 import de.floeschel.sign.SignRequest;
-import de.floeschel.sign.SignResponse;
 import de.floeschel.sign.pdf.PAdES;
 import java.io.File;
 import java.io.FileInputStream;
@@ -49,14 +49,14 @@ public class SignProcessor implements Processor {
 
         try {
             File resultFile = processSign((SignRequest) msg, raf);
-            return new ProcessResult(resultFile, SignResponse.newBuilder().build());
+            return new ProcessResult(resultFile, Response.newBuilder().build());
         } catch (IOException ex) {
             LOG.warn(ex.getLocalizedMessage(), ex);
             String errorMsg = ex.getLocalizedMessage();
             if (errorMsg != null) {
-                return new ProcessResult(null, SignResponse.newBuilder().setResult(1).setMsg(errorMsg).build());
+                return new ProcessResult(null, Response.newBuilder().setResult(1).setMsg(errorMsg).build());
             } else {
-                return new ProcessResult(null, SignResponse.newBuilder().setResult(1).build());
+                return new ProcessResult(null, Response.newBuilder().setResult(1).build());
             }
         }
 
@@ -182,40 +182,47 @@ public class SignProcessor implements Processor {
                 }
             }
             if (tmpSigFile != null) {
-                tmpSigFile.delete();
-                tmpSigFile.deleteOnExit();
+                if (!tmpSigFile.delete()) {
+                    tmpSigFile.deleteOnExit();
+                }
             }
 
             switch (level) {
                 case B:
                 case B_T:
                     if (isError && sigFile != null) {
-                        sigFile.delete();
-                        sigFile.deleteOnExit();
+                        if (!sigFile.delete()) {
+                            sigFile.deleteOnExit();
+                        }
                     }
                     break;
                 case B_LT:
                     if (isError && ltvFile != null) {
-                        ltvFile.delete();
-                        ltvFile.deleteOnExit();
+                        if (!ltvFile.delete()) {
+                            ltvFile.deleteOnExit();
+                        }
                     }
                     if (sigFile != null) {
-                        sigFile.delete();
-                        sigFile.deleteOnExit();
+                        if (!sigFile.delete()) {
+                            sigFile.deleteOnExit();
+                        }
                     }
                     break;
                 case B_LTA:
                     if (isError && ltvTsFile != null) {
-                        ltvTsFile.delete();
-                        ltvTsFile.deleteOnExit();
+                        if (!ltvTsFile.delete()) {
+                            ltvTsFile.deleteOnExit();
+                        }
                     }
                     if (ltvFile != null) {
-                        ltvFile.delete();
-                        ltvFile.deleteOnExit();
+                        if (!ltvFile.delete()) {
+                            ltvFile.deleteOnExit();
+                        }
                     }
                     if (sigFile != null) {
-                        sigFile.delete();
-                        sigFile.deleteOnExit();
+                        if (!sigFile.delete()) {
+                            sigFile.deleteOnExit();
+                        }
                     }
                     break;
             }

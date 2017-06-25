@@ -162,5 +162,10 @@
             <artifactId>bcpkix-jdk15on</artifactId>
             <version>1.57</version>
         </dependency>
+        <dependency>
+            <groupId>org.conscrypt</groupId>
+            <artifactId>conscrypt-openjdk-uber</artifactId>
+            <version>1.0.0.RC8</version>
+        </dependency>
     </dependencies>
 </project>

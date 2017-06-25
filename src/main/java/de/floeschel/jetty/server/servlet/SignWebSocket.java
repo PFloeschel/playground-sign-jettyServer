@@ -41,8 +41,9 @@ public class SignWebSocket {
             Processor processor = ProcessorFactory.getProcessor(req);
             ProcessResult result = processor.process(req, raf);
 
-            tmpFile.delete();
-            tmpFile.deleteOnExit();
+            if (!tmpFile.delete()) {
+                tmpFile.deleteOnExit();
+            }
 
             File resultFile = result.getFile();
             GeneratedMessageV3 protoMsg = result.getProtoMsg();
@@ -67,8 +68,9 @@ public class SignWebSocket {
                 } catch (RuntimeException | IOException ex) {
                     LOG.error(ex.getLocalizedMessage(), ex);
                 }
-                resultFile.delete();
-                resultFile.deleteOnExit();
+                if (!resultFile.delete()) {
+                    resultFile.deleteOnExit();
+                }
             } else {
                 endpoint.sendBytes(ByteBuffer.wrap(resultHeader));
             }

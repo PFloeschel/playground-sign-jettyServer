@@ -11,8 +11,13 @@ public class JettyConfiguration {
     private final int maxWorkerThreads;
     private final int minWorkerThreads;
     private final int workerIdleTimeout;
+    private final boolean useNativeTLS;
 
-    public JettyConfiguration(String hostname, int port, long maxIdleTime, String keystoreFilename, String keystorePassword, int sslEphemeralDHKeySize, int maxWorkerThreads, int minWorkerThreads, int workerIdleTimeout) {
+    public JettyConfiguration(String hostname, int port, long maxIdleTime,
+            String keystoreFilename, String keystorePassword,
+            int sslEphemeralDHKeySize, boolean useNativeTLS,
+            int maxWorkerThreads, int minWorkerThreads, int workerIdleTimeout) {
+
         this.hostname = hostname;
         this.port = port;
         this.maxIdleTime = maxIdleTime;
@@ -22,10 +27,15 @@ public class JettyConfiguration {
         this.maxWorkerThreads = maxWorkerThreads;
         this.minWorkerThreads = minWorkerThreads;
         this.workerIdleTimeout = workerIdleTimeout;
+        this.useNativeTLS = useNativeTLS;
+    }
+
+    public JettyConfiguration(String hostname, int port, long maxIdleTime, String keystoreFilename, String keystorePassword, boolean useNativeTLS) {
+        this(hostname, port, maxIdleTime, keystoreFilename, keystorePassword, 2048, useNativeTLS, 200, 8, 60000);
     }
 
     public JettyConfiguration(String hostname, int port, long maxIdleTime, String keystoreFilename, String keystorePassword) {
-        this(hostname, port, maxIdleTime, keystoreFilename, keystorePassword, 2048, 200, 8, 60000);
+        this(hostname, port, maxIdleTime, keystoreFilename, keystorePassword, false);
     }
 
     public JettyConfiguration(String hostname, int port, long maxIdleTime) {
@@ -54,6 +64,10 @@ public class JettyConfiguration {
 
     public int getSslEphemeralDHKeySize() {
         return sslEphemeralDHKeySize;
+    }
+
+    public boolean isUseNativeTLS() {
+        return useNativeTLS;
     }
 
     public int getMaxWorkerThreads() {

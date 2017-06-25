@@ -1,16 +1,25 @@
 package de.floeschel.jetty;
 
 import ch.qos.logback.classic.Level;
-import java.io.File;
+import com.google.common.io.ByteStreams;
+import de.floeschel.sign.Response;
+import de.floeschel.sign.SignRequest;
+import de.floeschel.sign.StreamUtil;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
 import java.util.concurrent.Future;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.entity.ContentType;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URIUtils;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
-import org.apache.http.nio.client.methods.HttpAsyncMethods;
-import org.apache.http.nio.client.methods.ZeroCopyConsumer;
+import org.apache.http.nio.protocol.BasicAsyncRequestProducer;
 import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,24 +35,34 @@ public class ApacheAsyncClient {
 
         try (CloseableHttpAsyncClient httpclient = HttpAsyncClients.createDefault()) {
             httpclient.start();
-            HttpAsyncRequestProducer httpPost = HttpAsyncMethods.createZeroCopyPost(
-                    "http://localhost:8080/",
-                    new File("C:\\Users\\HTPC\\Downloads\\Windows.iso"),
-                    ContentType.DEFAULT_BINARY);
 
-            Future<File> future = httpclient.execute(httpPost, new ZeroCopyConsumer<File>(new File("content")) {
-                @Override
-                protected File process(HttpResponse response, File file, ContentType contentType) throws Exception {
-                    if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                        throw new ClientProtocolException("Upload failed: " + response.getStatusLine());
-                    }
-                    return file;
-                }
-                
-            }, null);
+            SignRequest sr = SignRequest.newBuilder()
+                    .setCertificate("PF_123456")
+                    .setPin("123456")
+                    .setType(SignRequest.Type.PAdES_B)
+                    .build();
 
-            File result = future.get();
-            LOG.info("Response file length: " + result.length());
+            InputStream data = StreamUtil.buildProtobufStream(sr, new FileInputStream("test3.pdf"));
+
+            URI uri = URI.create("http://localhost:8080/Sign");
+            HttpPost httpPost = new HttpPost(uri);
+            httpPost.setEntity(new InputStreamEntity(data));
+            HttpHost target = URIUtils.extractHost(uri);
+
+            HttpAsyncRequestProducer httpAsyncPost = new BasicAsyncRequestProducer(target, httpPost);
+
+            //TODO: use a Consumer, similar to ZeroCopyConsumer but decode ProtoBuf response 
+            Future<HttpResponse> future = httpclient.execute(httpPost, null);
+
+            HttpResponse result = future.get();
+            HttpEntity entity = result.getEntity();
+            try (InputStream responseContent = entity.getContent();
+                    OutputStream os = new FileOutputStream("signed.pdf")) {
+                Response signResponse = StreamUtil.parseStream(responseContent, Response.class);
+                LOG.info("Result: (" + signResponse.getResult() + ") " + signResponse.getMsg());
+                ByteStreams.copy(responseContent, os);
+            }
+
             LOG.info("Shutting down");
         }
     }

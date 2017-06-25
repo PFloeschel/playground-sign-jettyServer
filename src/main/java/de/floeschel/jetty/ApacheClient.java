@@ -2,7 +2,9 @@ package de.floeschel.jetty;
 
 import ch.qos.logback.classic.Level;
 import com.google.common.io.ByteStreams;
-import java.io.File;
+import de.floeschel.sign.Response;
+import de.floeschel.sign.SignRequest;
+import de.floeschel.sign.StreamUtil;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -28,8 +30,17 @@ public class ApacheClient {
         root.setLevel(Level.INFO);
 
         try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
-            HttpPost httpPost = new HttpPost("http://localhost:8080/");
-            httpPost.setEntity(new InputStreamEntity(new FileInputStream(new File("C:\\Users\\HTPC\\Downloads\\Windows.iso"))));
+            HttpPost httpPost = new HttpPost("http://localhost:8080/Sign");
+
+            SignRequest sr = SignRequest.newBuilder()
+                    .setCertificate("PF_123456")
+                    .setPin("123456")
+                    .setType(SignRequest.Type.PAdES_B)
+                    .build();
+
+            InputStream data = StreamUtil.buildProtobufStream(sr, new FileInputStream("test3.pdf"));
+
+            httpPost.setEntity(new InputStreamEntity(data));
 
             // Create a custom response handler
             ResponseHandler<String> responseHandler = (final HttpResponse response) -> {
@@ -37,10 +48,12 @@ public class ApacheClient {
                 if (status >= 200 && status < 300) {
                     HttpEntity entity = response.getEntity();
                     try (InputStream responseContent = entity.getContent();
-                            OutputStream os = new FileOutputStream("content")) {
+                            OutputStream os = new FileOutputStream("signed.pdf")) {
+                        Response signResponse = StreamUtil.parseStream(responseContent, Response.class);
+                        LOG.info("Result: (" + signResponse.getResult() + ") " + signResponse.getMsg());
                         ByteStreams.copy(responseContent, os);
                     }
-                    
+
                     return response.getStatusLine().toString();
                 } else {
                     throw new ClientProtocolException("Unexpected response status: " + status);

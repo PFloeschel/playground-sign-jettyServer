@@ -2,9 +2,12 @@ package de.floeschel.jetty;
 
 import ch.qos.logback.classic.Level;
 import com.google.common.io.ByteStreams;
+import de.floeschel.sign.SignRequest;
+import de.floeschel.sign.StreamUtil;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
@@ -13,7 +16,6 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -67,9 +69,18 @@ public class OkClient {
                 .connectTimeout(60, TimeUnit.SECONDS)
                 .build();
 
+        SignRequest sr = SignRequest.newBuilder()
+                .setCertificate("PF_123456")
+                .setPin("123456")
+                .setType(SignRequest.Type.PAdES_B)
+                .build();
+
+        byte[] protoHeader = StreamUtil.buildProtobufStream(sr);
+        File file = new File("test3.pdf");
+
         Request request = new Request.Builder()
-                .url("http://localhost:8080/")
-                .post(RequestBody.create(null, new File("C:\\Users\\HTPC\\Downloads\\Windows.iso")))
+                .url("http://localhost:8080/Sign")
+                .post(OkRequestBody.create(null, protoHeader, file))
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
@@ -84,8 +95,11 @@ public class OkClient {
                     throw new IOException("Unexpected code " + response);
                 }
                 try (ResponseBody responseBody = response.body()) {
-                    try (OutputStream os = new FileOutputStream("content")) {
-                        ByteStreams.copy(responseBody.byteStream(), os);
+                    try (OutputStream os = new FileOutputStream("signed.pdf");
+                            InputStream stream = responseBody.byteStream();) {
+                        de.floeschel.sign.Response signResponse = StreamUtil.parseStream(stream, de.floeschel.sign.Response.class);
+                        LOG.info("Result: (" + signResponse.getResult() + ") " + signResponse.getMsg());
+                        ByteStreams.copy(stream, os);
                     }
                 }
             }
@@ -102,4 +116,5 @@ public class OkClient {
 //            }
 //        }
     }
+
 }

@@ -3,13 +3,13 @@ package de.floeschel.jetty.server;
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.ServerSocketChannel;
-import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import javax.crypto.Cipher;
 import javax.net.ssl.SSLEngine;
+import org.conscrypt.Conscrypt;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http2.HTTP2Cipher;
 import org.eclipse.jetty.http2.server.HTTP2CServerConnectionFactory;
@@ -35,18 +35,7 @@ public class JettyUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(JettyUtil.class);
 
-    private static boolean checkUnlimitedCryptoStrength() {
-        boolean unlimited = false;
-        try {
-            if (Cipher.getMaxAllowedKeyLength("AES") > 128) {
-                unlimited = true;
-            } else {
-                LOG.error("Java Cryptography Extension (JCE) Unlimited Strength is required! Please install it according to your Java provider.");
-            }
-        } catch (NoSuchAlgorithmException e) {
-        }
-        return unlimited;
-    }
+    private static final String CONSCRYPT = "CONSCRYPT";
 
     private static boolean checkALPN() {
         boolean alpn = true;
@@ -61,7 +50,7 @@ public class JettyUtil {
 
     public static void logServerStarted(Class clazz, ServerConnector serverConnector, SslContextFactory sslContextFactory)
             throws IOException {
-        
+
         if (sslContextFactory != null) {
             SSLEngine engine = sslContextFactory.newSSLEngine();
             String enabledProtocols[] = engine.getEnabledProtocols();
@@ -73,7 +62,7 @@ public class JettyUtil {
             LOG.info("TLS Ciphers (ENABLED): " + Arrays.toString(enabledCiphers));
             LOG.info("TLS Ciphers (SUPPORTED): " + Arrays.toString(supportedCiphers));
         }
-        
+
         ServerSocketChannel ssc = (ServerSocketChannel) serverConnector.getTransport();
         String protocols = serverConnector.getProtocols().stream().collect(Collectors.joining(", "));
         LOG.info(String.format("%s started in mode [%s] listening on %s", clazz.getSimpleName(), protocols, ssc.getLocalAddress()));
@@ -126,6 +115,12 @@ public class JettyUtil {
             sslContextFactory.setUseCipherSuitesOrder(true);
             sslContextFactory.setKeyStorePath(new File(keyStoreFilename).getAbsolutePath());
             sslContextFactory.setKeyStorePassword(keyStorePassword);
+
+            if (configuration.isUseNativeTLS()) {
+                Security.addProvider(Conscrypt.newProvider(CONSCRYPT));
+                sslContextFactory.setProvider(CONSCRYPT);
+            }
+
             if (keyStoreFilename.toUpperCase(Locale.ROOT).endsWith(".P12")
                     || keyStoreFilename.toUpperCase(Locale.ROOT).endsWith(".PFX")) {
                 sslContextFactory.setKeyStoreType("PKCS12");
@@ -138,7 +133,7 @@ public class JettyUtil {
             secureRequestCustomizer.setStsIncludeSubDomains(true);
             httpConfiguration.addCustomizer(secureRequestCustomizer);
 
-            if (checkALPN()) {
+            if (!configuration.isUseNativeTLS() && checkALPN()) {
                 sslContextFactory.setCipherComparator(HTTP2Cipher.COMPARATOR);
                 ALPNServerConnectionFactory alpnFactory = new ALPNServerConnectionFactory();
                 HTTP2ServerConnectionFactory http2Factory = new HTTP2ServerConnectionFactory(httpConfiguration);

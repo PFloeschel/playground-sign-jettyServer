@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import org.slf4j.LoggerFactory;
-import sun.nio.ch.DirectBuffer;
 
 public class StreamUtil {
 
@@ -57,7 +56,7 @@ public class StreamUtil {
     }
 
     public static void unmap(MappedByteBuffer buffer) {
-        sun.misc.Cleaner cleaner = ((DirectBuffer) buffer).cleaner();
+        sun.misc.Cleaner cleaner = ((sun.nio.ch.DirectBuffer) buffer).cleaner();
         cleaner.clean();
     }
 

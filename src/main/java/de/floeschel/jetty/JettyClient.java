@@ -3,7 +3,6 @@ package de.floeschel.jetty;
 import ch.qos.logback.classic.Level;
 import com.google.common.io.ByteStreams;
 import de.floeschel.sign.SignRequest;
-import de.floeschel.sign.SignResponse;
 import de.floeschel.sign.StreamUtil;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -53,7 +52,7 @@ public class JettyClient {
         SignRequest sr = SignRequest.newBuilder()
                 .setCertificate("PF_123456")
                 .setPin("123456")
-                .setType(SignRequest.Type.PAdES_B_LTA)
+                .setType(SignRequest.Type.PAdES_B)
                 .build();
         
         InputStream data = StreamUtil.buildProtobufStream(sr, new FileInputStream("test3.pdf"));
@@ -71,7 +70,7 @@ public class JettyClient {
                 // Use try-with-resources to close input stream.
                 try (InputStream responseContent = listener.getInputStream();
                         OutputStream os = new FileOutputStream("signed.pdf")) {
-                    SignResponse signResponse = StreamUtil.parseStream(responseContent, SignResponse.class);
+                    de.floeschel.sign.Response signResponse = StreamUtil.parseStream(responseContent, de.floeschel.sign.Response.class);
                     LOG.info("Result: (" + signResponse.getResult() + ") " + signResponse.getMsg());
                     ByteStreams.copy(responseContent, os);
                 }

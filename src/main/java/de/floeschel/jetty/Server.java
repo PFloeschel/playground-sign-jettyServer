@@ -27,14 +27,19 @@ public class Server {
 
         Security.addProvider(new BouncyCastleProvider());
 
-        JettyConfiguration config = new JettyConfiguration("0.0.0.0", 8080, 120_000);//, "../localhost_123456.p12", "123456");
+        JettyConfiguration config = new JettyConfiguration("0.0.0.0", 8080, 120_000);//, "../localhost_123456.p12", "123456", true);
         JettyServer jettyServer = JettyUtil.initJettyServer(CLAZZ, config);
 
+        boolean useGZIP = false;
+        
         HandlerWrapper servletHandler = createServletHandlerWithServlet();
-        HandlerWrapper gzipHandler = createGzipHandler();
-        gzipHandler.setHandler(servletHandler);
-        jettyServer.getServer().setHandler(gzipHandler);
-//        jettyServer.getServer().setHandler(servletHandler);
+        if (useGZIP) {
+            HandlerWrapper gzipHandler = createGzipHandler();
+            gzipHandler.setHandler(servletHandler);
+            jettyServer.getServer().setHandler(gzipHandler);
+        } else {
+            jettyServer.getServer().setHandler(servletHandler);
+        }
 
         jettyServer.getServer().setRequestLog(new AsyncNCSARequestLog("request.log"));
         jettyServer.getServer().start();
