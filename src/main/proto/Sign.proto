@@ -9,23 +9,24 @@ message SignRequest {
     string pin = 2;
     Type type = 3;
     bytes signature = 4;    //optional
-    bytes graphic = 5;	//optional
     map<string, string> settings = 6;	//optional
 	
     enum Type {
         option allow_alias = true;
-        CAdES = 00;
         
+        CAdES = 00;
+        CAdES_B = 00;
+        CAdES_B_T = 01;
+        CAdES_B_LT = 02;
+        CAdES_B_LTA = 03;
+                
         PAdES = 10;
-        PAdES_B =10;
-        PAdES_B_T=11;
-        PAdES_B_LT=12;
-        PAdES_B_LTA=13;
+        PAdES_B = 10;
+        PAdES_B_T = 11;
+        PAdES_B_LT = 12;
+        PAdES_B_LTA = 13;
         
         XAdES = 20;
-    }    
-    enum Setting {
-        PDF_PAGE = 0;
     }
 }
 
