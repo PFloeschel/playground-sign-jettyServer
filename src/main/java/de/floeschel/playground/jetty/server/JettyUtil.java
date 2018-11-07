@@ -34,8 +34,6 @@ public class JettyUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(JettyUtil.class);
 
-    private static final String CONSCRYPT = "CONSCRYPT";
-
     public static void logServerStarted(Class clazz, ServerConnector serverConnector, SslContextFactory sslContextFactory)
             throws IOException {
 
@@ -105,8 +103,9 @@ public class JettyUtil {
             sslContextFactory.setKeyStorePassword(keyStorePassword);
 
             if (configuration.isUseNativeTLS()) {
-                Security.addProvider(Conscrypt.newProvider(CONSCRYPT));
-                sslContextFactory.setProvider(CONSCRYPT);
+                var provider = Conscrypt.newProvider();
+                Security.addProvider(provider);
+                sslContextFactory.setProvider(provider.getName());
             }
 
             if (keyStoreFilename.toUpperCase(Locale.ROOT).endsWith(".P12")

@@ -6,16 +6,16 @@ import de.floeschel.playground.sign.util.Configuration;
 import de.floeschel.sign.SignRequest;
 import de.floeschel.playground.sign.util.StreamUtil;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.KeyStore;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -26,7 +26,6 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
-import org.apache.hc.core5.ssl.SSLContexts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -55,16 +54,19 @@ public class OkClient {
             SLF4JBridgeHandler.install();
         }
 
-        SSLSocketFactory sslSocketFactory = SSLContexts
-                .custom()
-                .loadTrustMaterial(new File(clientProperties.getProperty("truststoreFile")),
-                        clientProperties.getProperty("truststorePassword").toCharArray())
-                .build()
-                .getSocketFactory();
+//        SSLSocketFactory sslSocketFactory = SSLContexts
+//                .custom()
+//                .loadTrustMaterial(new File(clientProperties.getProperty("truststoreFile")),
+//                        clientProperties.getProperty("truststorePassword").toCharArray())
+//                .build()
+//                .getSocketFactory();
+        final KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        try (final FileInputStream inStream = new FileInputStream(new File(clientProperties.getProperty("truststoreFile")))) {
+            trustStore.load(inStream, clientProperties.getProperty("truststorePassword").toCharArray());
+        }
 
-        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(
-                TrustManagerFactory.getDefaultAlgorithm());
-        trustManagerFactory.init((KeyStore) null);
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(trustStore);
         TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
         if (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager)) {
             throw new IllegalStateException("Unexpected default trust managers:"
@@ -74,9 +76,10 @@ public class OkClient {
 
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
-
-        OkHttpClient client = new OkHttpClient.Builder()                    
-                .sslSocketFactory(sslSocketFactory, trustManager)
+        var sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, trustManagers, null);
+        OkHttpClient client = new OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.getSocketFactory(), trustManager)
                 .addInterceptor(logging)
                 .readTimeout(60, TimeUnit.SECONDS)
                 .writeTimeout(60, TimeUnit.SECONDS)
@@ -92,7 +95,7 @@ public class OkClient {
         byte[] protoHeader = StreamUtil.buildProtobufStream(sr);
         File file = new File(signProperties.getProperty("file"));
 
-        Request request = new Request.Builder()                
+        Request request = new Request.Builder()
                 .url(clientProperties.getProperty("uri"))
                 .post(OkRequestBody.create(null, protoHeader, file))
                 .build();
