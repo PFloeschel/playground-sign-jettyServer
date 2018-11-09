@@ -1,3 +1,4 @@
 target/
 *.pdf
 request.log
+logs/

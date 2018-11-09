@@ -20,6 +20,8 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.http.HttpClientTransportOverHTTP;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
@@ -32,55 +34,57 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * @author HTPC
+ * @author Pascal
  */
 public class JettyWebsocketClient {
-    
+
     private static final Class CLAZZ = JettyWebsocketClient.class;
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(CLAZZ);
-    
+
     public static void main(String[] args) throws Exception {
         Properties clientProperties = Configuration.load("clientJettyWS");
 
 //        ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
 //        root.setLevel(Level.INFO);
-        WebSocketClient webSocketClient = new WebSocketClient(new SslContextFactory(true));
+        HttpClient httpClient = new HttpClient(new HttpClientTransportOverHTTP(), new SslContextFactory(true));
+        httpClient.start();
+        WebSocketClient webSocketClient = new WebSocketClient(httpClient);
         webSocketClient.getPolicy().setMaxBinaryMessageSize(Integer.MAX_VALUE);
         webSocketClient.getPolicy().setMaxBinaryMessageBufferSize(64 * 1024);
         webSocketClient.getPolicy().setInputBufferSize(64 * 1024);
-        
+
         try {
             webSocketClient.start();
             LOG.info(webSocketClient.getPolicy().toString());
-            
+
             SignWebSocket signWebSocket = new SignWebSocket(new CountDownLatch(1));
             Future<Session> future = webSocketClient.connect(signWebSocket, new URI(clientProperties.getProperty("uri")));
             try (Session session = future.get()) {
-                
                 signWebSocket.getReceiveLatch().await(120, TimeUnit.SECONDS);
-                // Close session
+                // Close session;
             }
-            
+
         } finally {
             webSocketClient.stop();
+            httpClient.stop();
         }
     }
-    
+
     @WebSocket
     public static class SignWebSocket {
-        
+
         private final CountDownLatch receiveLatch;
-        private final Properties signProperties = Configuration.load("sign.properties");
-        
+        private final Properties signProperties = Configuration.load("sign");
+
         public SignWebSocket(CountDownLatch receiveLatch) {
             this.receiveLatch = receiveLatch;
         }
-        
+
         public CountDownLatch getReceiveLatch() {
             return receiveLatch;
         }
-        
+
         @OnWebSocketConnect
         public void onWebSocketConnect(Session session) {
             SignRequest sr = SignRequest.newBuilder()
@@ -89,7 +93,7 @@ public class JettyWebsocketClient {
                     .setType(PAdES.convert(signProperties.getProperty("type")))
                     .build();
             File f = new File(signProperties.getProperty("file"));
-            
+
             try (RandomAccessFile raf = new RandomAccessFile(f, "rw")) {
                 byte[] header = StreamUtil.buildProtobufStream(sr);
                 RemoteEndpoint endpoint = session.getRemote();
@@ -101,11 +105,15 @@ public class JettyWebsocketClient {
                 LOG.error(ex.getLocalizedMessage(), ex);
             }
         }
-        
+
         @OnWebSocketMessage
         public void onBinaryMethod(Session session, InputStream stream) {
             try {
-                try (OutputStream os = new FileOutputStream(signProperties.getProperty("signed"))) {
+                try (OutputStream os = new FileOutputStream(
+                        File.createTempFile(
+                                signProperties.getProperty("signedPrefix"),
+                                signProperties.getProperty("signedSuffix"),
+                                new File(signProperties.getProperty("signedFolder"))))) {
                     Response signResponse = StreamUtil.parseStream(stream, Response.class);
                     LOG.info("Result: (" + signResponse.getResult() + ") " + signResponse.getMsg());
                     ByteStreams.copy(stream, os);

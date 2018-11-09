@@ -32,7 +32,7 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**
  *
- * @author HTPC
+ * @author Pascal
  */
 public class OkClient {
 

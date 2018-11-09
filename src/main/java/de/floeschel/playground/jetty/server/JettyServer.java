@@ -6,7 +6,7 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 /**
  *
- * @author HTPC
+ * @author Pascal
  */
 public class JettyServer {
     

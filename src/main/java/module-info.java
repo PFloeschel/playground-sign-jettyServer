@@ -53,7 +53,9 @@ module de.floeschel.playground.sign.jettyServer {
     requires org.bouncycastle.pkix;
     requires org.bouncycastle.provider;
     requires org.conscrypt;
-    
+
     exports de.floeschel.playground.sign.jetty.server;
     exports de.floeschel.playground.sign.jetty.client;
+
+    exports de.floeschel.playground.sign.jetty.server.servlet;
 }

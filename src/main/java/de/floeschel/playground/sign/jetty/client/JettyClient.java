@@ -5,6 +5,7 @@ import de.floeschel.playground.sign.pdf.PAdES;
 import de.floeschel.playground.sign.util.Configuration;
 import de.floeschel.sign.SignRequest;
 import de.floeschel.playground.sign.util.StreamUtil;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -30,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * @author HTPC
+ * @author Pascal
  */
 public class JettyClient {
 
@@ -78,7 +79,11 @@ public class JettyClient {
             if (response.getStatus() == HttpStatus.OK_200) {
                 // Use try-with-resources to close input stream.
                 try (InputStream responseContent = listener.getInputStream();
-                        OutputStream os = new FileOutputStream(signProperties.getProperty("signed"))) {
+                        OutputStream os = new FileOutputStream(
+                                File.createTempFile(
+                                        signProperties.getProperty("signedPrefix"),
+                                        signProperties.getProperty("signedSuffix"),
+                                        new File(signProperties.getProperty("signedFolder"))))) {
                     de.floeschel.sign.Response signResponse = StreamUtil.parseStream(responseContent, de.floeschel.sign.Response.class);
                     LOG.info("Result: (" + signResponse.getResult() + ") " + signResponse.getMsg());
                     ByteStreams.copy(responseContent, os);
