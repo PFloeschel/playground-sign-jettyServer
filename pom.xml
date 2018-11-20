@@ -193,32 +193,32 @@
         <dependency>
             <groupId>org.eclipse.jetty.http2</groupId>
             <artifactId>http2-server</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-alpn-conscrypt-server</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-alpn-java-server</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlets</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.websocket</groupId>
             <artifactId>websocket-server</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -243,53 +243,47 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-client</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-alpn-conscrypt-client</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-alpn-java-client</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.websocket</groupId>
             <artifactId>websocket-client</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>27.0-jre</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>failureaccess</artifactId>
-                </exclusion>
-            </exclusions>
+            <version> 27.0.1-jre</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.http2</groupId>
             <artifactId>http2-client</artifactId>
-            <version>9.4.12.v20180830</version>
+            <version>9.4.14.v20181114</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.http2</groupId>
             <artifactId>http2-http-client-transport</artifactId>
-            <version>9.4.12.v20180830</version>            
+            <version>9.4.14.v20181114</version>            
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>3.11.0</version>
+            <version>3.12.0</version>
         </dependency>        
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>logging-interceptor</artifactId>
-            <version>3.11.0</version>
+            <version>3.12.0</version>
         </dependency>    
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
