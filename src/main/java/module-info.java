@@ -22,7 +22,7 @@ module de.floeschel.playground.sign.jettyServer {
     requires ch.qos.logback.classic;
     requires ch.qos.logback.core;
     requires org.slf4j;
-    requires jul_to_slf4j;
+    requires jul.to.slf4j;
     requires org.apache.commons.logging;
     requires org.eclipse.jetty.client;
     requires org.eclipse.jetty.alpn.conscrypt.client;

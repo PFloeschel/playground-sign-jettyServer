@@ -12,7 +12,8 @@ import de.floeschel.playground.sign.util.Configuration;
 import java.security.Security;
 import java.util.Properties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.eclipse.jetty.server.AsyncNCSARequestLog;
+import org.eclipse.jetty.server.AsyncRequestLogWriter;
+import org.eclipse.jetty.server.CustomRequestLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +43,7 @@ public class Server {
         } else {
             jettyServer.getServer().setHandler(servletHandler);
         }
-
-        jettyServer.getServer().setRequestLog(new AsyncNCSARequestLog("request.log"));
+        jettyServer.getServer().setRequestLog(new CustomRequestLog(new AsyncRequestLogWriter("request.log"), CustomRequestLog.EXTENDED_NCSA_FORMAT));
         jettyServer.getServer().start();
         JettyUtil.logServerStarted(CLAZZ, jettyServer.getServerConnector(), jettyServer.getSslContextFactory());
 
